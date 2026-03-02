@@ -40,6 +40,11 @@ int main() {
         while (std::getline(ss, dir, ':')) {
           std::string candidate = dir + '/' + cmd;
           if (fs::exists(candidate)) {
+            fs::perms perms = fs::status(candidate).permissions();
+
+            if ((perms & fs::perms::owner_exec) == fs::perms::none)
+              continue;
+
             std::cout << cmd << " is " << candidate << std::endl;
             found = true;
             break;
