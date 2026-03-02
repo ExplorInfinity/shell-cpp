@@ -11,6 +11,9 @@ int main() {
     std::cout << "$ ";
     std::string cmd;
     std::cin >> cmd;
+
+    if (cmd == "exit") break;
+
     std::cout << cmd << ": command not found" << std::endl;
   }
 }
