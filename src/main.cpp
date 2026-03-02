@@ -14,6 +14,11 @@ int main() {
 
     if (cmd == "exit") break;
 
-    std::cout << cmd << ": command not found" << std::endl;
+    if (cmd == "echo") {
+      std::getline(std::cin, cmd);
+      std::cout << cmd;
+    }
+
+    else std::cout << cmd << ": command not found" << std::endl;
   }
 }
