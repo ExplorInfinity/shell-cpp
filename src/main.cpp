@@ -19,6 +19,14 @@ int main() {
       std::cout << cmd.substr(1) << std::endl;
     }
 
+    else if (cmd == "type") {
+      std::cin >> cmd;
+      if (cmd == "echo" || cmd == "exit" || cmd == "type")
+        std::cout << cmd << " is a shell builtin" << std::endl;
+      else
+        std::cout << cmd << ": not found" << std::endl;
+    }
+
     else std::cout << cmd << ": command not found" << std::endl;
   }
 }
