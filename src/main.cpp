@@ -83,7 +83,7 @@ int main() {
             auto tokens = getAllTokens(cmdStream);
             const char* path;
 
-            if (tokens.empty()) {
+            if (tokens.empty() || tokens[0] == "~") {
                 path = std::getenv("HOME");
             } else path = tokens[0].c_str();
 
