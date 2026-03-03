@@ -79,6 +79,18 @@ int main() {
             }
         }
 
+        else if (cmd == "cd") {
+            auto tokens = getAllTokens(cmdStream);
+            const char* path;
+
+            if (tokens.empty()) {
+                path = std::getenv("HOME");
+            } else path = tokens[0].c_str();
+
+            if (chdir(path) != 0)
+                std::cerr << "cd: " << path << ": No such file or directory" << std::endl;
+        }
+
         else if (cmd == "pwd") {
             std::cout << std::filesystem::current_path().generic_string() << std::endl;
         }
