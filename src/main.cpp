@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 #include <sstream>
 #include <filesystem>
 #include <cstdlib>
@@ -8,6 +9,15 @@
 
 namespace fs = std::filesystem;
 const char *pathEnv = std::getenv("PATH");
+
+std::vector<std::string> getAllTokens(std::stringstream &ss) {
+    std::string token;
+    std::vector<std::string> tokens;
+    while (std::getline(ss, token, ' '))
+        if (!token.empty()) tokens.push_back(token);
+
+    return tokens;
+}
 
 std::optional<std::string> doesExecutableExist(const std::string &cmd) {
     std::string dir;
@@ -66,14 +76,24 @@ int main() {
         }
 
         else if (auto path = doesExecutableExist(cmd)) {
-            pid_t pid = fork();
 
-            std::string arg1, arg2;
-            cmdStream >> arg1 >> arg2;
+            auto tokens = getAllTokens(cmdStream);
+
+            std::vector<char*> args;
+            args.reserve(tokens.size() + 2);
+
+            std::string arg;
+            args.push_back(const_cast<char*>(cmd.c_str()));
+            for (auto &token : tokens)
+                args.push_back(token.data());
+
+            args.push_back(nullptr);
+
+            pid_t pid = fork();
 
             if (pid == 0) {
                 // Child Process
-                execl(path->c_str(), cmd.c_str(), arg1.c_str(), arg2.c_str(), nullptr);
+                execvp(cmd.c_str(), args.data());
             }
 
             else if (pid > 0) {
