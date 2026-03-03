@@ -62,7 +62,7 @@ int main() {
         }
 
         else if (cmd == "type") {
-            std::cin >> cmd;
+            cmdStream >> cmd;
 
             if (cmd == "echo" || cmd == "exit" || cmd == "type")
                 std::cout << cmd << " is a shell builtin" << std::endl;
