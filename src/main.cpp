@@ -58,7 +58,7 @@ int main() {
         if (cmd == "echo") {
             std::string printline;
             if (std::getline(cmdStream, printline) && !printline.empty())
-                std::cout << cmd.substr(1) << std::endl;
+                std::cout << printline.substr(1) << std::endl;
         }
 
         else if (cmd == "type") {
