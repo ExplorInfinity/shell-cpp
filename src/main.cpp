@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <ranges>
 #include <sstream>
 #include <filesystem>
 #include <cstdlib>
@@ -38,13 +39,13 @@ std::optional<std::string> doesExecutableExist(const std::string &cmd) {
     return {};
 }
 
+std::vector<std::string> builtin_cmds = { "exit", "echo", "type", "pwd" };
+
 int main() {
     if (!pathEnv) return -1;
 
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
-
-    std::string currDir = "/";
 
     while (true) {
         std::cout << "$ ";
@@ -67,7 +68,7 @@ int main() {
         else if (cmd == "type") {
             cmdStream >> cmd;
 
-            if (cmd == "echo" || cmd == "exit" || cmd == "type")
+            if (std::ranges::find(builtin_cmds, cmd) != builtin_cmds.end())
                 std::cout << cmd << " is a shell builtin" << std::endl;
             else {
 
