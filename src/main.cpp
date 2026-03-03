@@ -70,7 +70,7 @@ int main() {
 
                 if (auto path = doesExecutableExist(cmd)) {
                     std::cout << cmd << " is " << path.value() << std::endl;
-                } else std::cout << cmd << " : not found" << std::endl;
+                } else std::cout << cmd << ": not found" << std::endl;
 
             }
         }
