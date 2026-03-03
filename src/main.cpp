@@ -44,6 +44,8 @@ int main() {
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
 
+    std::string currDir = "/";
+
     while (true) {
         std::cout << "$ ";
         std::string line, cmd;
@@ -57,8 +59,9 @@ int main() {
 
         if (cmd == "echo") {
             std::string printline;
-            if (std::getline(cmdStream, printline) && !printline.empty())
-                std::cout << printline.substr(1) << std::endl;
+            while (std::getline(cmdStream, printline, ' '))
+                if (!printline.empty()) std::cout << printline << ' ';
+            std::cout << std::endl;
         }
 
         else if (cmd == "type") {
@@ -73,6 +76,10 @@ int main() {
                 } else std::cout << cmd << ": not found" << std::endl;
 
             }
+        }
+
+        else if (cmd == "pwd") {
+            std::cout << std::filesystem::current_path().generic_string() << std::endl;
         }
 
         else if (auto path = doesExecutableExist(cmd)) {
@@ -94,9 +101,10 @@ int main() {
             if (pid == 0) {
                 // Child Process
                 execvp(cmd.c_str(), args.data());
+                return 0;
             }
 
-            else if (pid > 0) {
+            if (pid > 0) {
                 // Parent Process
                 wait(nullptr);
             }
@@ -104,6 +112,7 @@ int main() {
             else {
                 std::cerr << cmd << ": failed to run" << std::endl;
             }
+
         }
 
         else std::cout << cmd << ": command not found" << std::endl;
