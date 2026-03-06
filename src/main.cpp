@@ -17,12 +17,16 @@ std::vector<std::string> getAllTokens(std::stringstream &ss) {
 
     std::vector<std::string> tokens;
 
-    bool isSingleQuote = false;
+    bool isSingleQuote = false, isDoubleQuote = false;
     std::string token;
     for (const char ch : s) {
-        if (ch == '\'') isSingleQuote = !isSingleQuote;
+        if (ch == '\"')
+            isDoubleQuote = !isDoubleQuote;
 
-        else if (ch == ' ' && !isSingleQuote) {
+        else if (!isDoubleQuote && ch == '\'')
+            isSingleQuote = !isSingleQuote;
+
+        else if (ch == ' ' && !isSingleQuote && !isDoubleQuote) {
             if (!token.empty()) tokens.push_back(token);
             token = "";
         }
