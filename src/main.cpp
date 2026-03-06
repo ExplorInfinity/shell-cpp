@@ -8,51 +8,11 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+#include "parser.h"
+using namespace Parser;
+
 namespace fs = std::filesystem;
 const char *pathEnv = std::getenv("PATH");
-
-std::vector<char> doubleQuotesEscapeChars = { '\"', '\\' };
-
-std::vector<std::string> getAllTokens(std::stringstream &ss) {
-    std::string s;
-    std::getline(ss, s);
-
-    std::vector<std::string> tokens;
-
-    char startQuote = 0;
-    bool stringLiteral = false, escapeChar = false;
-    std::string token;
-    for (const char ch : s) {
-        if (escapeChar) {
-            if (stringLiteral && std::ranges::find(doubleQuotesEscapeChars, ch) == doubleQuotesEscapeChars.end())
-                token += '\\';
-            token += ch;
-            escapeChar = false;
-            continue;
-        }
-
-        if ((ch == '\"' || ch == '\'') && (!stringLiteral || startQuote == ch)) {
-            stringLiteral = !stringLiteral;
-            startQuote = ch;
-        }
-
-        else if (ch == '\\' && (startQuote == '\"' || !stringLiteral)) {
-            escapeChar = true;
-        }
-
-        else if (ch == ' ' && !stringLiteral) {
-            if (!token.empty()) tokens.push_back(token);
-            token = "";
-        }
-
-        else token += ch;
-    }
-
-    if (!token.empty())
-        tokens.push_back(token);
-
-    return tokens;
-}
 
 std::optional<std::string> doesExecutableExist(const std::string &cmd) {
     std::string dir;
@@ -83,30 +43,29 @@ int main() {
 
     while (true) {
         std::cout << "$ ";
-        std::string line, cmd;
+        std::string cmdLine;
 
-        std::getline(std::cin, line);
-
-        std::stringstream cmdStream(line);
-        cmdStream >> cmd;
+        std::getline(std::cin, cmdLine);
+        auto cmdTokens = parseString(cmdLine);
+        const auto &cmd = cmdTokens[0];
 
         if (cmd == "exit") break;
 
         if (cmd == "echo") {
-            const auto tokens = getAllTokens(cmdStream);
-            for (const auto &token : tokens)
-                std::cout << token << ' ';
+            for (int i = 1; i < cmdTokens.size(); i++)
+                std::cout << cmdTokens[i] << ' ';
             std::cout << std::endl;
         }
 
         else if (cmd == "type") {
-            cmdStream >> cmd;
+            const auto &search_cmd = cmdTokens[1];
 
-            if (std::ranges::find(builtin_cmds, cmd) != builtin_cmds.end())
+            if (std::ranges::find(builtin_cmds, search_cmd) != builtin_cmds.end())
                 std::cout << cmd << " is a shell builtin" << std::endl;
+
             else {
 
-                if (auto path = doesExecutableExist(cmd)) {
+                if (auto path = doesExecutableExist(search_cmd)) {
                     std::cout << cmd << " is " << path.value() << std::endl;
                 } else std::cout << cmd << ": not found" << std::endl;
 
@@ -114,12 +73,11 @@ int main() {
         }
 
         else if (cmd == "cd") {
-            auto tokens = getAllTokens(cmdStream);
             const char* path;
 
-            if (tokens.empty() || tokens[0] == "~") {
+            if (cmdTokens.empty() || cmdTokens[1] == "~") {
                 path = std::getenv("HOME");
-            } else path = tokens[0].c_str();
+            } else path = cmdTokens[1].c_str();
 
             if (chdir(path) != 0)
                 std::cerr << "cd: " << path << ": No such file or directory" << std::endl;
@@ -131,15 +89,13 @@ int main() {
 
         else if (auto path = doesExecutableExist(cmd)) {
 
-            auto tokens = getAllTokens(cmdStream);
-
             std::vector<char*> args;
-            args.reserve(tokens.size() + 2);
+            args.reserve(cmdTokens.size() + 1);
 
             std::string arg;
             args.push_back(const_cast<char*>(cmd.c_str()));
-            for (auto &token : tokens)
-                args.push_back(token.data());
+            for (int i = 1; i < cmdTokens.size(); i++)
+                args.push_back(cmdTokens[i].data());
 
             args.push_back(nullptr);
 
