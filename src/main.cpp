@@ -61,13 +61,13 @@ int main() {
             const auto &search_cmd = cmdTokens[1];
 
             if (std::ranges::find(builtin_cmds, search_cmd) != builtin_cmds.end())
-                std::cout << cmd << " is a shell builtin" << std::endl;
+                std::cout << search_cmd << " is a shell builtin" << std::endl;
 
             else {
 
                 if (auto path = doesExecutableExist(search_cmd)) {
-                    std::cout << cmd << " is " << path.value() << std::endl;
-                } else std::cout << cmd << ": not found" << std::endl;
+                    std::cout << search_cmd << " is " << path.value() << std::endl;
+                } else std::cout << search_cmd << ": not found" << std::endl;
 
             }
         }
