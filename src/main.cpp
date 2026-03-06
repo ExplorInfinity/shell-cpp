@@ -12,10 +12,26 @@ namespace fs = std::filesystem;
 const char *pathEnv = std::getenv("PATH");
 
 std::vector<std::string> getAllTokens(std::stringstream &ss) {
-    std::string token;
+    std::string s;
+    std::getline(ss, s);
+
     std::vector<std::string> tokens;
-    while (std::getline(ss, token, ' '))
-        if (!token.empty()) tokens.push_back(token);
+
+    bool isSingleQuote = false;
+    std::string token;
+    for (const char ch : s) {
+        if (ch == '\'') isSingleQuote = !isSingleQuote;
+
+        else if (ch == ' ' && !isSingleQuote) {
+            if (!token.empty()) tokens.push_back(token);
+            token = "";
+        }
+
+        else token += ch;
+    }
+
+    if (!token.empty())
+        tokens.push_back(token);
 
     return tokens;
 }
@@ -59,9 +75,9 @@ int main() {
         if (cmd == "exit") break;
 
         if (cmd == "echo") {
-            std::string printline;
-            while (std::getline(cmdStream, printline, ' '))
-                if (!printline.empty()) std::cout << printline << ' ';
+            const auto tokens = getAllTokens(cmdStream);
+            for (const auto &token : tokens)
+                std::cout << token << ' ';
             std::cout << std::endl;
         }
 
