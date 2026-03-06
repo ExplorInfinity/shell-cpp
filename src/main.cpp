@@ -11,6 +11,8 @@
 namespace fs = std::filesystem;
 const char *pathEnv = std::getenv("PATH");
 
+std::vector<char> doubleQuotesEscapeChars = { '\"', '\\' };
+
 std::vector<std::string> getAllTokens(std::stringstream &ss) {
     std::string s;
     std::getline(ss, s);
@@ -22,6 +24,8 @@ std::vector<std::string> getAllTokens(std::stringstream &ss) {
     std::string token;
     for (const char ch : s) {
         if (escapeChar) {
+            if (stringLiteral && std::ranges::find(doubleQuotesEscapeChars, ch) == doubleQuotesEscapeChars.end())
+                token += '\\';
             token += ch;
             escapeChar = false;
             continue;
@@ -32,7 +36,7 @@ std::vector<std::string> getAllTokens(std::stringstream &ss) {
             startQuote = ch;
         }
 
-        else if (ch == '\\' && !stringLiteral) {
+        else if (ch == '\\' && (startQuote == '\"' || !stringLiteral)) {
             escapeChar = true;
         }
 
