@@ -52,7 +52,6 @@ int main() {
         std::getline(std::cin, cmdLine);
         auto [cmd, args, outfile, append, redirection] = parseString(cmdLine);
 
-
         int saved = -1;
         if (redirection != REDIRECTION::NONE) {
             saved = dup(redirection);
