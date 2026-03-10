@@ -3,8 +3,10 @@
 #include <vector>
 #include <ranges>
 #include <sstream>
+#include <fstream>
 #include <filesystem>
 #include <cstdlib>
+#include <fcntl.h>
 #include <unistd.h>
 #include <sys/wait.h>
 
@@ -19,7 +21,9 @@ std::optional<std::string> doesExecutableExist(const std::string &cmd) {
     std::stringstream ss(pathEnv);
 
     while (std::getline(ss, dir, ':')) {
-        std::string candidate = dir + '/' + cmd;
+        std::string candidate = dir + '/';
+        candidate += cmd;
+
         if (fs::exists(candidate)) {
             const fs::perms perms = fs::status(candidate).permissions();
 
@@ -41,24 +45,41 @@ int main() {
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
 
-    while (true) {
+    bool repl = true;
+
+    while (repl) {
         std::cout << "$ ";
         std::string cmdLine;
 
         std::getline(std::cin, cmdLine);
-        auto cmdTokens = parseString(cmdLine);
-        const auto &cmd = cmdTokens[0];
+        auto [cmd, args, outfile, redirection] = parseString(cmdLine);
+
+        if (redirection) {
+            const pid_t pid = fork();
+
+            if (pid == 0) {
+                int fd = open(outfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                dup2(fd, STDOUT_FILENO);
+                close(fd);
+
+                repl = false;
+            } else {
+                waitpid(pid, nullptr, 0);
+                continue;
+            }
+        }
+
 
         if (cmd == "exit") break;
 
         if (cmd == "echo") {
-            for (int i = 1; i < cmdTokens.size(); i++)
-                std::cout << cmdTokens[i] << ' ';
+            for (const auto &token : args)
+                std::cout << token << ' ';
             std::cout << std::endl;
         }
 
         else if (cmd == "type") {
-            const auto &search_cmd = cmdTokens[1];
+            const auto &search_cmd = args[0];
 
             if (std::ranges::find(builtin_cmds, search_cmd) != builtin_cmds.end())
                 std::cout << search_cmd << " is a shell builtin" << std::endl;
@@ -75,9 +96,9 @@ int main() {
         else if (cmd == "cd") {
             const char* path;
 
-            if (cmdTokens.empty() || cmdTokens[1] == "~") {
+            if (args.empty() || args[0] == "~") {
                 path = std::getenv("HOME");
-            } else path = cmdTokens[1].c_str();
+            } else path = args[0].c_str();
 
             if (chdir(path) != 0)
                 std::cerr << "cd: " << path << ": No such file or directory" << std::endl;
@@ -89,21 +110,27 @@ int main() {
 
         else if (auto path = doesExecutableExist(cmd)) {
 
-            std::vector<char*> args;
-            args.reserve(cmdTokens.size() + 1);
+            std::vector<char*> c_args;
+            args.reserve(args.size() + 2);
 
             std::string arg;
-            args.push_back(const_cast<char*>(cmd.c_str()));
-            for (int i = 1; i < cmdTokens.size(); i++)
-                args.push_back(cmdTokens[i].data());
+            c_args.push_back(const_cast<char*>(cmd.c_str()));
+            for (auto &arg : args)
+                c_args.push_back(arg.data());
 
-            args.push_back(nullptr);
+            c_args.push_back(nullptr);
 
             pid_t pid = fork();
 
             if (pid == 0) {
                 // Child Process
-                execvp(cmd.c_str(), args.data());
+                if (redirection) {
+                    int fd = open(outfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                    dup2(fd, STDOUT_FILENO);
+                    close(fd);
+                }
+
+                execvp(cmd.c_str(), c_args.data());
                 return 0;
             }
 

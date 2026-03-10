@@ -5,9 +5,16 @@
 
 namespace Parser {
 
+    struct Command {
+        std::string cmd;
+        std::vector<std::string> args;
+        std::string outfile;
+        bool redirection = false;
+    };
+
     inline std::vector<char> doubleQuotesEscapeChars = { '\"', '\\' };
 
-    inline std::vector<std::string> parseString(const std::string &s) {
+    inline Command parseString(const std::string &s) {
         std::vector<std::string> tokens;
 
         char startQuote = 0;
@@ -42,13 +49,19 @@ namespace Parser {
         if (!token.empty())
             tokens.push_back(token);
 
-        return tokens;
-    }
+        bool redirection = false;
+        std::string outfile;
 
-    inline std::vector<std::string> getAllTokens(std::stringstream &ss) {
-        std::string s;
-        std::getline(ss, s);
+        if (tokens[tokens.size()-2] == ">" || tokens[tokens.size()-2] == "1>") {
+            redirection = true;
+            outfile = tokens.back();
+            tokens.pop_back();
+            tokens.pop_back();
+        }
 
-        return parseString(s);
+        std::string cmd = tokens.front();
+        tokens.erase(tokens.begin());
+
+        return { cmd, tokens, outfile, redirection };
     }
 }
