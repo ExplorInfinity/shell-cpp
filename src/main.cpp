@@ -50,13 +50,13 @@ int main() {
         std::string cmdLine;
 
         std::getline(std::cin, cmdLine);
-        auto [cmd, args, outfile, redirection] = parseString(cmdLine);
+        auto [cmd, args, outfile, append, redirection] = parseString(cmdLine);
 
 
         int saved = -1;
         if (redirection != REDIRECTION::NONE) {
             saved = dup(redirection);
-            int fd = open(outfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            int fd = open(outfile.c_str(), O_WRONLY | O_CREAT | (append ? O_APPEND : O_TRUNC), 0644);
             dup2(fd, redirection);
             close(fd);
         }

@@ -2,6 +2,7 @@
 #include <vector>
 #include <ranges>
 
+static std::vector<std::string> redirectionTokens = { ">", "1>", "2>", ">>", "1>>", "2>>" };
 static std::vector<char> doubleQuotesEscapeChars = { '\"', '\\' };
 
 namespace Parser {
@@ -12,6 +13,7 @@ namespace Parser {
         std::string cmd;
         std::vector<std::string> args;
         std::string outfile;
+        bool append = false;
         REDIRECTION redirection = NONE;
     };
 
@@ -54,13 +56,17 @@ namespace Parser {
         REDIRECTION redirection = NONE;
         std::string outfile;
 
+        bool append = false;
         const std::string &t = tokens[tokens.size()-2];
-        if ( tokens.size() > 2 && (t == ">" || t == "1>" || t == "2>")) {
+        if ( tokens.size() > 2 && std::ranges::find(redirectionTokens, t) != redirectionTokens.end()) {
 
-            if (t == ">" || t == "1>")
+            if (t == ">" || t == "1>" || t == ">>" || t == "1>>")
                 redirection = STDIN;
-            else if (t == "2>")
+            else if (t == "2>" || t == "2>>")
                 redirection = STDERR;
+
+            if (t.size() >= 2 && t.substr(t.size()-2) == ">>")
+                append = true;
 
             outfile = tokens.back();
             tokens.pop_back();
@@ -70,6 +76,6 @@ namespace Parser {
         std::string cmd = tokens.front();
         tokens.erase(tokens.begin());
 
-        return { cmd, tokens, outfile, redirection };
+        return { cmd, tokens, outfile, append, redirection };
     }
 }
