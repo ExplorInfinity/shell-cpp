@@ -1,18 +1,20 @@
 #pragma once
 #include <vector>
 #include <ranges>
-#include <sstream>
+
+static std::vector<char> doubleQuotesEscapeChars = { '\"', '\\' };
 
 namespace Parser {
+
+    enum REDIRECTION { NONE, STDIN, STDERR };
 
     struct Command {
         std::string cmd;
         std::vector<std::string> args;
         std::string outfile;
-        bool redirection = false;
+        REDIRECTION redirection = NONE;
     };
 
-    inline std::vector<char> doubleQuotesEscapeChars = { '\"', '\\' };
 
     inline Command parseString(const std::string &s) {
         std::vector<std::string> tokens;
@@ -49,11 +51,17 @@ namespace Parser {
         if (!token.empty())
             tokens.push_back(token);
 
-        bool redirection = false;
+        REDIRECTION redirection = NONE;
         std::string outfile;
 
-        if (tokens[tokens.size()-2] == ">" || tokens[tokens.size()-2] == "1>") {
-            redirection = true;
+        const std::string &t = tokens[tokens.size()-2];
+        if ( tokens.size() > 2 && (t == ">" || t == "1>" || t == "2>")) {
+
+            if (t == ">" || t == "1>")
+                redirection = STDIN;
+            else if (t == "2>")
+                redirection = STDERR;
+
             outfile = tokens.back();
             tokens.pop_back();
             tokens.pop_back();

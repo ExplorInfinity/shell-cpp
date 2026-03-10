@@ -45,30 +45,21 @@ int main() {
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
 
-    bool repl = true;
-
-    while (repl) {
+    while (true) {
         std::cout << "$ ";
         std::string cmdLine;
 
         std::getline(std::cin, cmdLine);
         auto [cmd, args, outfile, redirection] = parseString(cmdLine);
 
-        if (redirection) {
-            const pid_t pid = fork();
 
-            if (pid == 0) {
-                int fd = open(outfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-                dup2(fd, STDOUT_FILENO);
-                close(fd);
-
-                repl = false;
-            } else {
-                waitpid(pid, nullptr, 0);
-                continue;
-            }
+        int saved = -1;
+        if (redirection != REDIRECTION::NONE) {
+            saved = dup(redirection);
+            int fd = open(outfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            dup2(fd, redirection);
+            close(fd);
         }
-
 
         if (cmd == "exit") break;
 
@@ -113,7 +104,6 @@ int main() {
             std::vector<char*> c_args;
             args.reserve(args.size() + 2);
 
-            std::string arg;
             c_args.push_back(const_cast<char*>(cmd.c_str()));
             for (auto &arg : args)
                 c_args.push_back(arg.data());
@@ -124,12 +114,6 @@ int main() {
 
             if (pid == 0) {
                 // Child Process
-                if (redirection) {
-                    int fd = open(outfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-                    dup2(fd, STDOUT_FILENO);
-                    close(fd);
-                }
-
                 execvp(cmd.c_str(), c_args.data());
                 return 0;
             }
@@ -146,5 +130,10 @@ int main() {
         }
 
         else std::cout << cmd << ": command not found" << std::endl;
+
+        if (redirection != REDIRECTION::NONE) {
+            dup2(saved, redirection);
+            close(saved);
+        }
     }
 }
