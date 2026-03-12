@@ -11,7 +11,7 @@ static termios orig_termios;
 
 namespace RawInput {
 
-    static enum KEYS {
+    enum KEYS {
         DELETE = 127,
         BACKSPACE = 8,
         TAB = '\t',
