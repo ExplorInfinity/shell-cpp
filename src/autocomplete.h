@@ -31,7 +31,7 @@ namespace AutoComplete {
     inline void builtinCmdCompletion(std::vector<std::string> &possibilities, const std::string &input) {
         for (const auto &cmd : builtin_cmds) {
             if (match(cmd, input))
-                possibilities.push_back(cmd + ' ');
+                possibilities.push_back(cmd);
         }
     }
 
@@ -43,9 +43,13 @@ namespace AutoComplete {
         while (std::getline(ss, dir, ':')) {
             std::error_code ec;
             for (const auto &entry : fs::recursive_directory_iterator(dir, fs::directory_options::skip_permission_denied, ec)) {
-                if (entry.is_regular_file(ec) && !ec && isExecutable(entry) && match(entry.path().filename(), input)) {
+                if (!entry.is_regular_file(ec) || ec) continue;
+
+                const std::string filename = entry.path().filename();
+                if (isExecutable(entry) && match(filename, input) &&
+                    std::ranges::find(builtin_cmds, filename) == builtin_cmds.end())
+                {
                     possibilities.push_back(entry.path().filename());
-                    possibilities.back() += ' ';
                 }
             }
         }
@@ -73,6 +77,7 @@ namespace AutoComplete {
             return false;
 
         input = possibilities[0];
+        input += ' ';
         return true;
     }
 
