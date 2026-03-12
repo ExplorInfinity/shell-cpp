@@ -11,14 +11,19 @@ namespace AutoComplete {
         for (const auto &cmd : builtin_cmds) {
             if (cmd.size() < input.size()) continue;
 
+            bool match = true;
             for (int i = 0; i < input.size(); i++) {
-                if (cmd[i] != input[i])
-                    return false;
+                if (cmd[i] != input[i]) {
+                    match = false;
+                    break;
+                }
             }
 
-            input = cmd;
-            input += ' ';
-            return true;
+            if (match) {
+                input = cmd;
+                input += ' ';
+                return true;
+            }
         }
 
         return false;
