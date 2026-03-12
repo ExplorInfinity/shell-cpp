@@ -20,7 +20,7 @@ namespace AutoComplete {
             }
 
             if (match)
-                return cmd;
+                return cmd + ' ';
         }
 
         return input;
