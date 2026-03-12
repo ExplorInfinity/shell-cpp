@@ -4,8 +4,11 @@
 #include <string>
 #include <filesystem>
 
+#include "executable.h"
+using namespace Executable;
+
 namespace fs = std::filesystem;
-extern const char *pathEnv;
+
 
 namespace AutoComplete {
 
@@ -34,11 +37,6 @@ namespace AutoComplete {
         return false;
     }
 
-    inline bool isExecutable(const fs::directory_entry &entry) {
-        const auto perms = entry.status().permissions();
-        return (perms & fs::perms::owner_exec) != fs::perms::none;
-    }
-
     inline bool executableCompletion(std::string &input) {
 
         std::string dir;
@@ -53,7 +51,6 @@ namespace AutoComplete {
                 }
             }
         }
-
 
         return false;
     }

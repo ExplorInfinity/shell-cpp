@@ -10,6 +10,6 @@ add_executable(shell ${SOURCE_FILES}
         src/parser.h
         src/rawInput.h
         src/autocomplete.h
-        src/utils.h)
+        src/executable.h)
 
 target_link_libraries(shell PRIVATE readline)

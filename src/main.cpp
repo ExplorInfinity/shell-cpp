@@ -3,7 +3,6 @@
 #include <vector>
 #include <ranges>
 #include <sstream>
-#include <filesystem>
 #include <cstdlib>
 #include <fcntl.h>
 #include <unistd.h>
@@ -16,30 +15,6 @@
 using namespace Parser;
 using namespace RawInput;
 using namespace AutoComplete;
-
-namespace fs = std::filesystem;
-const char *pathEnv = std::getenv("PATH");
-
-std::optional<std::string> doesExecutableExist(const std::string &cmd) {
-    std::string dir;
-    std::stringstream ss(pathEnv);
-
-    while (std::getline(ss, dir, ':')) {
-        std::string candidate = dir + '/';
-        candidate += cmd;
-
-        if (fs::exists(candidate)) {
-            const fs::perms perms = fs::status(candidate).permissions();
-
-            if ((perms & fs::perms::owner_exec) == fs::perms::none)
-                continue;
-
-            return candidate;
-        }
-    }
-
-    return {};
-}
 
 int main() {
     if (!pathEnv) return -1;
