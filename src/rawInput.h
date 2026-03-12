@@ -38,7 +38,7 @@ namespace RawInput {
     }
 
     inline void isRawInputEnabled() {
-        termios check;
+        termios check{};
         tcgetattr(STDIN_FILENO, &check);
         std::cerr << ((check.c_lflag & ICANON) ? "canonical ON\n" : "canonical OFF\n");
     }
@@ -50,15 +50,19 @@ namespace RawInput {
     inline std::string watchInput() {
         char ch;
         std::string input;
+        int tabCount = 0;
         while (read(STDIN_FILENO, &ch, 1) == 1) {
             switch (ch) {
-                case TAB:
+                case TAB: {
                     if (input.empty()) break;
-                    clearTerminalLine();
-                     if (!cmdCompletion(input)) {
-                        std::cout << input << '\x07';
-                     } else std::cout << input;
+                    tabCount++;
+                    // clearTerminalLine();
+                    const auto size = input.size();
+                    if (!cmdCompletion(input, tabCount == 2))
+                        std::cout << '\x07';
+                    std::cout << &input[size];
                     break;
+                }
 
                 case NEWLINE:
                     std::cout << '\n';
@@ -69,12 +73,14 @@ namespace RawInput {
                     if (!input.empty()) {
                         input.pop_back();
                         std::cout << "\b \b";
+                        tabCount = 0;
                     }
                     break;
 
                 default:
                     std::cout << ch;
                     input += ch;
+                    tabCount = 0;
             }
         }
 

@@ -2,13 +2,16 @@
 
 #include <vector>
 #include <string>
+#include <algorithm>
 #include <filesystem>
+#include <unordered_map>
 
 #include "executable.h"
 using namespace Executable;
 
 namespace fs = std::filesystem;
 
+static std::unordered_map<std::string, std::vector<std::string>> cache;
 
 namespace AutoComplete {
 
@@ -25,42 +28,52 @@ namespace AutoComplete {
         return true;
     }
 
-    inline bool builtinCmdCompletion(std::string &input) {
+    inline void builtinCmdCompletion(std::vector<std::string> &possibilities, const std::string &input) {
         for (const auto &cmd : builtin_cmds) {
-            if (match(cmd, input)) {
-                input = cmd;
-                input += ' ';
-                return true;
-            }
+            if (match(cmd, input))
+                possibilities.push_back(cmd + ' ');
         }
-
-        return false;
     }
 
-    inline bool executableCompletion(std::string &input) {
+    inline void executableCompletion(std::vector<std::string> &possibilities, const std::string &input) {
 
         std::string dir;
         std::stringstream ss(pathEnv);
 
         while (std::getline(ss, dir, ':')) {
-            for (const auto &entry : fs::recursive_directory_iterator(dir)) {
-                if (entry.is_regular_file() && isExecutable(entry) && match(entry.path().filename(), input)) {
-                    input = entry.path().filename();
-                    input += ' ';
-                    return true;
+            std::error_code ec;
+            for (const auto &entry : fs::recursive_directory_iterator(dir, fs::directory_options::skip_permission_denied, ec)) {
+                if (entry.is_regular_file(ec) && !ec && isExecutable(entry) && match(entry.path().filename(), input)) {
+                    possibilities.push_back(entry.path().filename());
+                    possibilities.back() += ' ';
                 }
             }
         }
-
-        return false;
     }
 
 
-    inline bool cmdCompletion(std::string &input) {
-        if (builtinCmdCompletion(input) || executableCompletion(input))
-            return true;
+    inline bool cmdCompletion(std::string &input, const bool showOptions) {
+        if (showOptions && cache.contains(input)) {
+            std::cout << '\n';
+            for (const auto &possibility : cache.at(input))
+                std::cout << possibility << "  ";
 
-        return false;
+            std::cout << "\n$ " << input;
+            return true;
+        }
+
+        std::vector<std::string> &possibilities = cache[input];
+
+        builtinCmdCompletion(possibilities, input);
+        executableCompletion(possibilities, input);
+
+        std::ranges::sort(possibilities);
+
+        if (possibilities.size() != 1)
+            return false;
+
+        input = possibilities[0];
+        return true;
     }
 
 }
