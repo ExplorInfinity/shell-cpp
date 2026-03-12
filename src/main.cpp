@@ -3,7 +3,6 @@
 #include <vector>
 #include <ranges>
 #include <sstream>
-#include <fstream>
 #include <filesystem>
 #include <cstdlib>
 #include <fcntl.h>
@@ -11,7 +10,12 @@
 #include <sys/wait.h>
 
 #include "parser.h"
+#include "rawInput.h"
+#include "autocomplete.h"
+
 using namespace Parser;
+using namespace RawInput;
+using namespace AutoComplete;
 
 namespace fs = std::filesystem;
 const char *pathEnv = std::getenv("PATH");
@@ -37,19 +41,20 @@ std::optional<std::string> doesExecutableExist(const std::string &cmd) {
     return {};
 }
 
-std::vector<std::string> builtin_cmds = { "exit", "echo", "type", "pwd" };
-
 int main() {
     if (!pathEnv) return -1;
+
+    enableRawInput();
+    atexit(disableRawInput);
 
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
 
     while (true) {
         std::cout << "$ ";
-        std::string cmdLine;
+        std::string cmdLine = watchInput();
 
-        std::getline(std::cin, cmdLine);
+        // std::getline(std::cin, cmdLine);
         auto [cmd, args, outfile, append, redirection] = parseString(cmdLine);
 
         int saved = -1;
