@@ -76,6 +76,8 @@ namespace AutoComplete {
             return false;
 
         input = possibilities[0];
+        if (possibilities.size() == 1)
+            input += ' ';
         return true;
     }
 
