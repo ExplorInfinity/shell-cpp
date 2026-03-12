@@ -15,7 +15,8 @@ namespace RawInput {
         DELETE = 127,
         BACKSPACE = 8,
         TAB = '\t',
-        NEWLINE = '\n'
+        NEWLINE = '\n',
+        BELL = '\x07'
     };
 
     inline void disableRawInput() {
@@ -54,8 +55,9 @@ namespace RawInput {
                 case TAB:
                     if (input.empty()) break;
                     clearTerminalLine();
-                    input = cmdCompletion(input);
-                    std::cout << input;
+                     if (!cmdCompletion(input)) {
+                        std::cout << input << '\x07';
+                     } else std::cout << input;
                     break;
 
                 case NEWLINE:
