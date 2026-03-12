@@ -56,13 +56,18 @@ namespace AutoComplete {
     }
 
 
-    inline bool cmdCompletion(std::string &input, const int index) {
-        if (index > 0 && cache.size() > index) {
-            input = cache[index];
+    inline bool cmdCompletion(std::string &input, const bool showOptions) {
+        if (showOptions) {
+            if (cache.empty())
+                return false;
+
+            std::cout << '\n';
+            for (const auto &possibility : cache)
+                std::cout << possibility << "  ";
+            std::cout << "\n$ " << input;
+
             return true;
         }
-
-        if (index > 0) return false;
 
         std::vector<std::string> &possibilities = cache;
         possibilities.clear();
@@ -70,15 +75,26 @@ namespace AutoComplete {
         builtinCmdCompletion(possibilities, input);
         executableCompletion(possibilities, input);
 
-        std::ranges::sort(possibilities);
-
         if (possibilities.empty())
             return false;
 
-        input = possibilities[0];
-        if (possibilities.size() == 1)
+        if (possibilities.size() == 1) {
+            input = possibilities[0];
             input += ' ';
+            return true;
+        }
 
+        std::ranges::sort(possibilities);
+        const auto maxSize = possibilities.front().size();
+        for (const auto &possibility : possibilities) {
+            if (possibility.size() > maxSize)
+                possibilities.pop_back();
+        }
+
+        if (possibilities.size() > 1)
+            return false;
+
+        input = possibilities[0];
         return true;
     }
 
