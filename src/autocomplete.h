@@ -11,7 +11,7 @@ using namespace Executable;
 
 namespace fs = std::filesystem;
 
-static std::unordered_map<std::string, std::vector<std::string>> cache;
+static std::vector<std::string> cache;
 
 namespace AutoComplete {
 
@@ -56,24 +56,24 @@ namespace AutoComplete {
     }
 
 
-    inline bool cmdCompletion(std::string &input, const bool showOptions) {
-        if (showOptions && cache.contains(input)) {
-            std::cout << '\n';
-            for (const auto &possibility : cache.at(input))
-                std::cout << possibility << "  ";
-
-            std::cout << "\n$ " << input;
+    inline bool cmdCompletion(std::string &input, const int index) {
+        if (index > 0 && cache.size() > index) {
+            input = cache[index];
+            input += ' ';
             return true;
         }
 
-        std::vector<std::string> &possibilities = cache[input];
+        if (index > 0) return false;
+
+        std::vector<std::string> &possibilities = cache;
+        possibilities.clear();
 
         builtinCmdCompletion(possibilities, input);
         executableCompletion(possibilities, input);
 
         std::ranges::sort(possibilities);
 
-        if (possibilities.size() != 1)
+        if (possibilities.empty())
             return false;
 
         input = possibilities[0];

@@ -51,16 +51,22 @@ namespace RawInput {
         char ch;
         std::string input;
         int tabCount = 0;
+        std::size_t lastInputSize = 0;
         while (read(STDIN_FILENO, &ch, 1) == 1) {
             switch (ch) {
                 case TAB: {
                     if (input.empty()) break;
-                    tabCount++;
-                    // clearTerminalLine();
-                    const auto size = input.size();
-                    if (!cmdCompletion(input, tabCount == 2))
+
+                    if (tabCount > 0) {
+                        const auto backspaces = input.size() - lastInputSize;
+                        for (int i = 0; i < backspaces; i++)
+                            std::cout << "\b \b";
+                    } else lastInputSize = input.size();
+
+                    if (!cmdCompletion(input, tabCount++))
                         std::cout << '\x07';
-                    std::cout << &input[size];
+
+                    std::cout << &input[lastInputSize];
                     break;
                 }
 
