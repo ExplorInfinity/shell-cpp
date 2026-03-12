@@ -59,7 +59,6 @@ namespace AutoComplete {
     inline bool cmdCompletion(std::string &input, const int index) {
         if (index > 0 && cache.size() > index) {
             input = cache[index];
-            input += ' ';
             return true;
         }
 
@@ -77,7 +76,6 @@ namespace AutoComplete {
             return false;
 
         input = possibilities[0];
-        input += ' ';
         return true;
     }
 
