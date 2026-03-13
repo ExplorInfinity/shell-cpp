@@ -13,11 +13,11 @@ namespace fs = std::filesystem;
 
 static std::vector<std::string> cache;
 
-static bool isCompatible(const std::string &cmd, const std::string &input) {
-    if (cmd.size() < input.size()) return false;
+static bool hasPrefix(const std::string &s, const std::string &prefix) {
+    if (s.size() < prefix.size()) return false;
 
-    for (int i = 0; i < input.size(); i++) {
-        if (cmd[i] != input[i])
+    for (int i = 0; i < prefix.size(); i++) {
+        if (s[i] != prefix[i])
             return false;
     }
 
@@ -31,7 +31,7 @@ namespace CommandAutoCompletion {
 
     inline void builtinCmdCompletion(std::vector<std::string> &possibilities, const std::string &input) {
         for (const auto &cmd : builtin_cmds) {
-            if (isCompatible(cmd, input))
+            if (hasPrefix(cmd, input))
                 possibilities.push_back(cmd);
         }
     }
@@ -47,7 +47,7 @@ namespace CommandAutoCompletion {
                 if (!entry.is_regular_file(ec) || ec) continue;
 
                 const std::string filename = entry.path().filename();
-                if (isExecutable(entry) && isCompatible(filename, input) &&
+                if (isExecutable(entry) && hasPrefix(filename, input) &&
                     std::ranges::find(builtin_cmds, filename) == builtin_cmds.end())
                 {
                     possibilities.push_back(entry.path().filename());
@@ -112,11 +112,29 @@ namespace CommandAutoCompletion {
 }
 
 namespace FileAutoCompletion {
+    inline std::pair<std::string, std::string> parseFilePath(const std::string &filePath) {
+        for (int i = static_cast<int>(filePath.size()) - 1; i >= 0; --i) {
+            if (filePath[i] == '/')
+                return { filePath.substr(0, i + 1), filePath.substr(i + 1) };
+        }
+
+        return { "", filePath };
+    }
+
     inline bool fileCompletion(std::string &input) {
-        const fs::path pwd = fs::current_path();
-        for (const fs::directory_entry &entry : fs::directory_iterator(pwd)) {
-            if (entry.is_regular_file() && !isExecutable(entry) && isCompatible(entry.path().filename(), input)) {
-                input = entry.path().filename();
+        const auto [subdir, fileName] = parseFilePath(input);
+        if (fileName.empty())
+            return false;
+
+        const fs::path cwd = fs::current_path();
+
+        fs::path path = cwd;
+        path += '/' + subdir;
+
+        for (const fs::directory_entry &entry : fs::directory_iterator(path)) {
+            if (entry.is_regular_file() && !isExecutable(entry) && hasPrefix(entry.path().filename(), fileName)) {
+                input = subdir;
+                input += entry.path().filename();
                 input += ' ';
                 return true;
             }
