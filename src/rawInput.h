@@ -63,7 +63,7 @@ namespace RawInput {
 
             std::cout << &input[lastInputSize];
         } else {
-            auto file = (args.empty() ? "" : args.back());
+            auto file = ((args.empty() || input.back() == ' ') ? "" : args.back());
             const std::size_t lastInputSize = file.size();
             if (!fileCompletion(file, input, ++tabCount > 1))
                 std::cout << '\x07';
