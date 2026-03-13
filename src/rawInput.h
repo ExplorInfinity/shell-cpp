@@ -57,7 +57,7 @@ namespace RawInput {
 
         if (input.back() != ' ' && args.empty()) {
             const std::size_t lastInputSize = input.size();
-            if (!cmdCompletion(input, ++tabCount == 2))
+            if (!cmdCompletion(input, ++tabCount > 1))
                 std::cout << '\x07';
             else tabCount = 0;
 
@@ -65,7 +65,7 @@ namespace RawInput {
         } else {
             auto file = (args.empty() ? "" : args.back());
             const std::size_t lastInputSize = file.size();
-            if (!fileCompletion(file))
+            if (!fileCompletion(file, input, ++tabCount > 1))
                 std::cout << '\x07';
             else tabCount = 0;
 

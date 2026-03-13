@@ -71,8 +71,8 @@ namespace CommandAutoCompletion {
             return true;
         }
 
+        cache.clear();
         std::vector<std::string> &possibilities = cache;
-        possibilities.clear();
 
         builtinCmdCompletion(possibilities, input);
         executableCompletion(possibilities, input);
@@ -122,24 +122,41 @@ namespace FileAutoCompletion {
         return { "", filePath };
     }
 
-    inline bool fileCompletion(std::string &input) {
+    inline bool fileCompletion(std::string &input, const std::string &cmdLine, const bool showOptions) {
+        if (showOptions) {
+            if(cache.empty())
+                return false;
+
+            std::cout << '\n';
+            for (const auto &s : cache)
+                std::cout << s << "  ";
+
+            std::cout << "\n$ " << cmdLine;
+        }
+
         const fs::path cwd = fs::current_path();
         const auto [subdir, fileName] = parseFilePath(input);
 
         fs::path path = cwd;
         path += '/' + subdir;
 
+        cache.clear();
+        auto &possibilities = cache;
+
+
         for (const fs::directory_entry &entry : fs::directory_iterator(path)) {
             const bool isFile = entry.is_regular_file() && !isExecutable(entry);
-            if ((isFile || entry.is_directory()) && hasPrefix(entry.path().filename().c_str(), fileName)) {
-                input = subdir;
-                input += entry.path().filename();
-                input += (isFile ? ' ' : '/');
-                return true;
-            }
+            if ((isFile || entry.is_directory()) && hasPrefix(entry.path().filename().c_str(), fileName))
+                possibilities.push_back(subdir + entry.path().filename().c_str() + (isFile ? ' ' : '/'));
         }
 
-        return false;
+        std::ranges::sort(possibilities);
+
+        if (possibilities.size() != 1)
+            return false;
+
+        input = possibilities[0];
+        return true;
     }
 }
 
