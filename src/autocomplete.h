@@ -98,7 +98,7 @@ namespace CommandAutoCompletion {
         }
 
         const auto maxSize = possibilities.front().size();
-        for (int i = static_cast<int>(possibilities.size()) -1; i >= 0; --i) {
+        for (int i = static_cast<int>(possibilities.size()) - 1; i >= 0; --i) {
             if (possibilities[i].size() > maxSize)
                 possibilities.pop_back();
         }
@@ -152,9 +152,24 @@ namespace FileAutoCompletion {
 
         std::ranges::sort(possibilities);
 
-        if (possibilities.size() != 1)
+        if (possibilities.empty())
             return false;
 
+        if (possibilities.size() == 1) {
+            input = possibilities[0];
+            return true;
+        }
+
+        const auto maxSize = possibilities.front().size();
+        for (int i = static_cast<int>(possibilities.size()) - 1; i >= 0; --i) {
+            if (possibilities[i].size() > maxSize)
+                possibilities.pop_back();
+        }
+
+        if (possibilities.size() > 1)
+            return false;
+
+        possibilities[0].pop_back();
         input = possibilities[0];
         return true;
     }
