@@ -122,11 +122,8 @@ namespace FileAutoCompletion {
     }
 
     inline bool fileCompletion(std::string &input) {
-        const auto [subdir, fileName] = parseFilePath(input);
-        if (fileName.empty())
-            return false;
-
         const fs::path cwd = fs::current_path();
+        const auto [subdir, fileName] = parseFilePath(input);
 
         fs::path path = cwd;
         path += '/' + subdir;
