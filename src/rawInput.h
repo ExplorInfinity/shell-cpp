@@ -55,7 +55,7 @@ namespace RawInput {
 
         const auto &[cmd, args, outfile, append, redirection] = parseString(input);
 
-        if (args.empty()) {
+        if (input.back() != ' ' && args.empty()) {
             const std::size_t lastInputSize = input.size();
             if (!cmdCompletion(input, ++tabCount == 2))
                 std::cout << '\x07';
@@ -63,7 +63,7 @@ namespace RawInput {
 
             std::cout << &input[lastInputSize];
         } else {
-            auto file = args.back();
+            auto file = (args.empty() ? "" : args.back());
             const std::size_t lastInputSize = file.size();
             if (!fileCompletion(file))
                 std::cout << '\x07';

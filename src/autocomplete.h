@@ -4,6 +4,7 @@
 #include <string>
 #include <algorithm>
 #include <filesystem>
+#include <string_view>
 #include <unordered_map>
 
 #include "executable.h"
@@ -13,7 +14,7 @@ namespace fs = std::filesystem;
 
 static std::vector<std::string> cache;
 
-static bool hasPrefix(const std::string &s, const std::string &prefix) {
+static bool hasPrefix(const std::string_view s, const std::string_view prefix) {
     if (s.size() < prefix.size()) return false;
 
     for (int i = 0; i < prefix.size(); i++) {
@@ -129,10 +130,11 @@ namespace FileAutoCompletion {
         path += '/' + subdir;
 
         for (const fs::directory_entry &entry : fs::directory_iterator(path)) {
-            if (entry.is_regular_file() && !isExecutable(entry) && hasPrefix(entry.path().filename(), fileName)) {
+            const bool isFile = entry.is_regular_file() && !isExecutable(entry);
+            if ((isFile || entry.is_directory()) && hasPrefix(entry.path().filename().c_str(), fileName)) {
                 input = subdir;
                 input += entry.path().filename();
-                input += ' ';
+                input += (isFile ? ' ' : '/');
                 return true;
             }
         }
