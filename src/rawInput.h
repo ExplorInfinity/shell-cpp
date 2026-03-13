@@ -4,7 +4,10 @@
 #include <unistd.h>
 #include <string>
 
+#include "parser.h"
 #include "autocomplete.h"
+
+using namespace Parser;
 using namespace AutoComplete;
 
 static termios orig_termios;
@@ -47,23 +50,39 @@ namespace RawInput {
         std::cout << "\r\33[2K$ ";
     }
 
+    inline void handleTab(std::string &input, int &tabCount) {
+        if (input.empty()) return;
+
+        const auto &[cmd, args, outfile, append, redirection] = parseString(input);
+
+        if (args.empty()) {
+            const std::size_t lastInputSize = input.size();
+            if (!cmdCompletion(input, ++tabCount == 2))
+                std::cout << '\x07';
+            else tabCount = 0;
+
+            std::cout << &input[lastInputSize];
+        } else {
+            auto file = args.back();
+            const std::size_t lastInputSize = file.size();
+            if (!fileCompletion(file))
+                std::cout << '\x07';
+            else tabCount = 0;
+
+            input += file.substr(lastInputSize);
+            std::cout << file.substr(lastInputSize);
+        }
+    }
+
     inline std::string watchInput() {
         char ch;
         std::string input;
         int tabCount = 0;
         while (read(STDIN_FILENO, &ch, 1) == 1) {
             switch (ch) {
-                case TAB: {
-                    if (input.empty()) break;
-
-                    const std::size_t lastInputSize = input.size();
-                    if (!cmdCompletion(input, ++tabCount == 2))
-                        std::cout << '\x07';
-                    else tabCount = 0;
-
-                    std::cout << &input[lastInputSize];
+                case TAB:
+                    handleTab(input, tabCount);
                     break;
-                }
 
                 case NEWLINE:
                     std::cout << '\n';
