@@ -6,6 +6,8 @@
 using namespace Config;
 using namespace Executable;
 
+extern std::vector<std::string> history;
+
 namespace Runner {
 
     inline bool runCmd(std::vector<std::string> &args, const bool canSpawnChildProcess = true) {
@@ -59,6 +61,11 @@ namespace Runner {
 
         else if (cmd == "pwd") {
             std::cout << std::filesystem::current_path().generic_string() << std::endl;
+        }
+
+        else if (cmd == "history") {
+            for (int i = 0; i < history.size(); i++)
+                std::cout << std::setw(5) << i + 1 << "  " << history[i] << std::endl;
         }
 
         else if (auto path = doesExecutableExist(cmd)) {

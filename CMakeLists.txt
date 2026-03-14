@@ -11,7 +11,6 @@ add_executable(shell ${SOURCE_FILES}
         src/rawInput.h
         src/autocomplete.h
         src/executable.h
-        src/pipeline.h
         src/runner.h
         src/config.h)
 

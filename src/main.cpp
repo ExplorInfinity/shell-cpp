@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stack>
 #include <string>
 #include <vector>
 #include <ranges>
@@ -11,14 +12,14 @@
 #include "runner.h"
 #include "parser.h"
 #include "rawInput.h"
-#include "pipeline.h"
 #include "autocomplete.h"
 
 using namespace Runner;
 using namespace Parser;
 using namespace RawInput;
-using namespace Pipeline;
 using namespace AutoComplete;
+
+std::vector<std::string> history;
 
 int main() {
     if (!pathEnv) return -1;
@@ -32,6 +33,7 @@ int main() {
     while (true) {
         std::cout << "$ ";
         std::string cmdLine = watchInput();
+        history.push_back(cmdLine);
 
         auto [cmdPipelines, outfile, append, redirection] = parseString(cmdLine);
 
