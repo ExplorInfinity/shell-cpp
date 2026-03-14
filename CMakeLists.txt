@@ -12,6 +12,7 @@ add_executable(shell ${SOURCE_FILES}
         src/autocomplete.h
         src/executable.h
         src/runner.h
-        src/config.h)
+        src/config.h
+        src/history.h)
 
 target_link_libraries(shell PRIVATE readline)

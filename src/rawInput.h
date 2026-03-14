@@ -10,8 +10,6 @@
 using namespace Parser;
 using namespace AutoComplete;
 
-extern std::vector<std::string> history;
-
 static termios orig_termios;
 
 namespace RawInput {
@@ -21,12 +19,13 @@ namespace RawInput {
                                       ARROW_LEFT = "\x1b[D",
                                       ARROW_RIGHT = "\x1b[C";
 
+    static constexpr char BELL = '\x07';
+
     enum KEYS {
         DELETE = 127,
         BACKSPACE = 8,
         TAB = '\t',
         NEWLINE = '\n',
-        BELL = '\x07',
         ESC = '\x1b'
     };
 
@@ -71,7 +70,7 @@ namespace RawInput {
         if (input.back() != ' ' && args.size() == 1) {
             const std::size_t lastInputSize = cmd.size();
             if (!cmdCompletion(cmd, input, ++tabCount > 1))
-                std::cout << '\x07';
+                std::cout << BELL;
             else tabCount = 0;
 
             input += cmd.substr(lastInputSize);
@@ -80,7 +79,7 @@ namespace RawInput {
             auto file = ((args.size() == 1 || input.back() == ' ') ? "" : args.back());
             const std::size_t lastInputSize = file.size();
             if (!fileCompletion(file, input, ++tabCount > 1))
-                std::cout << '\x07';
+                std::cout << BELL;
             else tabCount = 0;
 
             input += file.substr(lastInputSize);
@@ -122,8 +121,8 @@ namespace RawInput {
                     read(STDIN_FILENO, &seq[1], 1);
 
                     if (seq[0] != '[') {
-                        std::cerr << "Error Reading the escape chars\n";
-                        _exit(1);
+                        std::cout << BELL;
+                        break;
                     }
 
                     if (seq[1] != 'A' && seq[1] != 'B')

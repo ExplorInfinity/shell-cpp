@@ -9,17 +9,17 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+#include "history.h"
 #include "runner.h"
 #include "parser.h"
 #include "rawInput.h"
 #include "autocomplete.h"
 
+using namespace History;
 using namespace Runner;
 using namespace Parser;
 using namespace RawInput;
 using namespace AutoComplete;
-
-std::vector<std::string> history;
 
 int main() {
     if (!pathEnv) return -1;

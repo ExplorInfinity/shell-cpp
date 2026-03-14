@@ -1,12 +1,15 @@
 #pragma once
 
+#include <fstream>
+#include <algorithm>
+
 #include "config.h"
 #include "executable.h"
+#include "history.h"
 
 using namespace Config;
 using namespace Executable;
-
-extern std::vector<std::string> history;
+using namespace History;
 
 namespace Runner {
 
@@ -64,10 +67,17 @@ namespace Runner {
         }
 
         else if (cmd == "history") {
-            const int recent = (args.size() > 1 ? history.size() - stoi(args[1]) : 0);
+            if (args.size() > 2) {
+                loadHistory(args);
+                return true;
+            }
 
-            for (int i = recent; i < history.size(); i++)
-                std::cout << std::setw(5) << i + 1 << "  " << history[i] << std::endl;
+            if (args.size() == 2 && !std::ranges::all_of(args[1], ::isdigit)) {
+                std::cout << cmd << ": " << args[1] << ": Invalid Positive Number\n";
+                return true;
+            }
+
+            showHistory(args);
         }
 
         else if (auto path = doesExecutableExist(cmd)) {
