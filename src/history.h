@@ -8,20 +8,37 @@ namespace fs = std::filesystem;
 
 namespace History {
 
+    static int appendIndex = 0;
     static std::vector<std::string> history;
 
-    inline void loadHistory(const std::vector<std::string> &args) {
-        std::ifstream infile(args[2]);
+    inline void loadHistory(const std::string &filename) {
+        std::ifstream infile(filename);
+
+        if (!infile) {
+            std::cerr << "Error opening file: " << filename << '\n';
+            return;
+        }
+
         std::string line;
         while (getline(infile, line))
             history.push_back(line);
+
         infile.close();
     }
 
-    inline void writeHistory(const std::vector<std::string> &args) {
-        std::ofstream outfile(args[2]);
-        for (const auto &s : history)
+    inline void writeHistory(const std::string &filename, const bool append = false) {
+        std::ofstream outfile(filename, (append ? std::ios::app : std::ios::out));
+
+        if (!outfile) {
+            std::cerr << "Error opening file: " << filename << '\n';
+            return;
+        }
+
+        for (const auto &s : history | std::views::drop(append ? appendIndex : 0))
             outfile << s << '\n';
+
+        appendIndex = static_cast<int>(history.size());
+
         outfile.close();
     }
 
@@ -43,17 +60,19 @@ namespace History {
                 return;
             }
 
-
             switch (args[1].back()) {
                 case 'r':
                     if (args.size() == 3 && !fs::exists(args[2])) {
                         std::cout << args[0] << ": " << args[2] << ": Invalid file path!\n";
                         break;
                     }
-                    loadHistory(args);
+                    loadHistory(args[2]);
                     break;
                 case 'w':
-                    writeHistory(args);
+                    writeHistory(args[2]);
+                    break;
+                case 'a':
+                    writeHistory(args[2], true);
                     break;
                 default:
                     std::cerr << args[0] << ": invalid option -- " << args[1] << '\n';
