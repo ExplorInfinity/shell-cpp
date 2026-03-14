@@ -1,12 +1,13 @@
-#include <iostream>
-#include <string>
-#include <vector>
-#include <ranges>
-#include <sstream>
 #include <cstdlib>
 #include <fcntl.h>
-#include <unistd.h>
+#include <functional>
+#include <iostream>
+#include <ranges>
+#include <sstream>
+#include <string>
 #include <sys/wait.h>
+#include <unistd.h>
+#include <vector>
 
 #include "history.h"
 #include "runner.h"
@@ -20,14 +21,23 @@ using namespace Parser;
 using namespace RawInput;
 using namespace AutoComplete;
 
+const char* histFile;
+
+static void writeHistoryToFile() {
+    writeHistory(histFile);
+}
+
 int main() {
     if (!pathEnv) return -1;
 
     enableRawInput();
     atexit(disableRawInput);
 
-    const char* histFile = std::getenv("HISTFILE");
-    if (histFile) loadHistory(histFile);
+    histFile = std::getenv("HISTFILE");
+    if (histFile) {
+        loadHistory(histFile);
+        atexit(writeHistoryToFile);
+    }
 
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
