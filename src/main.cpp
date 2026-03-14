@@ -32,9 +32,9 @@ int main() {
 
     while (true) {
         std::cout << "$ ";
-        std::string cmdLine = watchInput();
-        history.push_back(cmdLine);
+        watchInput();
 
+        const std::string &cmdLine = history.back();
         auto [cmdPipelines, outfile, append, redirection] = parseString(cmdLine);
 
 

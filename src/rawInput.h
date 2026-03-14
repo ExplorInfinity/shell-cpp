@@ -10,16 +10,24 @@
 using namespace Parser;
 using namespace AutoComplete;
 
+extern std::vector<std::string> history;
+
 static termios orig_termios;
 
 namespace RawInput {
+
+    static constexpr std::string_view ARROW_UP = "\x1b[A",
+                                      ARROW_DOWN = "\x1b[B",
+                                      ARROW_LEFT = "\x1b[D",
+                                      ARROW_RIGHT = "\x1b[C";
 
     enum KEYS {
         DELETE = 127,
         BACKSPACE = 8,
         TAB = '\t',
         NEWLINE = '\n',
-        BELL = '\x07'
+        BELL = '\x07',
+        ESC = '\x1b'
     };
 
     inline void disableRawInput() {
@@ -80,36 +88,62 @@ namespace RawInput {
         }
     }
 
-    inline std::string watchInput() {
+    inline void watchInput() {
+        int currIndex = static_cast<int>(history.size());
+        history.resize(history.size() + 1);
+        std::string *input = &history.back();
+
         char ch;
-        std::string input;
         int tabCount = 0;
         while (read(STDIN_FILENO, &ch, 1) == 1) {
             switch (ch) {
                 case TAB:
-                    handleTab(input, tabCount);
+                    handleTab(*input, tabCount);
                     break;
 
                 case NEWLINE:
+                    if (currIndex != history.size()-1)
+                        history.back() = history[currIndex];
                     std::cout << '\n';
-                    return input;
+                    return;
 
                 case DELETE:
                 case BACKSPACE:
-                    if (!input.empty()) {
-                        input.pop_back();
+                    if (!input->empty()) {
+                        input->pop_back();
                         std::cout << "\b \b";
                         tabCount = 0;
                     }
                     break;
 
+                case ESC: {
+                    char seq[2];
+                    read(STDIN_FILENO, &seq[0], 1);
+                    read(STDIN_FILENO, &seq[1], 1);
+
+                    if (seq[0] != '[') {
+                        std::cerr << "Error Reading the escape chars\n";
+                        _exit(1);
+                    }
+
+                    if (seq[1] != 'A' && seq[1] != 'B')
+                        break;
+
+                    const int jump = (seq[1] == 'A') ? -1 : 1;
+                    if (currIndex + jump >= 0 && currIndex + jump < history.size()) {
+                        currIndex += jump;
+                        input = &history[currIndex];
+                        clearTerminalLine();
+                        std::cout << *input;
+                    }
+                    break;
+                }
+
                 default:
                     std::cout << ch;
-                    input += ch;
+                    *input += ch;
                     tabCount = 0;
             }
         }
-
-        return "";
     }
 }
