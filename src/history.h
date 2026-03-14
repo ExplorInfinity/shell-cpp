@@ -21,8 +21,10 @@ namespace History {
         }
 
         std::string line;
-        while (getline(infile, line))
+        while (getline(infile, line)) {
+            appendIndex++;
             history.push_back(line);
+        }
 
         infile.close();
     }
