@@ -1,8 +1,5 @@
 #pragma once
 
-#include <fstream>
-#include <algorithm>
-
 #include "config.h"
 #include "executable.h"
 #include "history.h"
@@ -44,7 +41,7 @@ namespace Runner {
 
             else {
 
-                if (auto path = doesExecutableExist(search_cmd)) {
+                if (const auto path = doesExecutableExist(search_cmd)) {
                     std::cout << search_cmd << " is " << path.value() << std::endl;
                 } else std::cout << search_cmd << ": not found" << std::endl;
 
@@ -67,17 +64,7 @@ namespace Runner {
         }
 
         else if (cmd == "history") {
-            if (args.size() > 2) {
-                loadHistory(args);
-                return true;
-            }
-
-            if (args.size() == 2 && !std::ranges::all_of(args[1], ::isdigit)) {
-                std::cout << cmd << ": " << args[1] << ": Invalid Positive Number\n";
-                return true;
-            }
-
-            showHistory(args);
+            runHistoryCmd(args);
         }
 
         else if (auto path = doesExecutableExist(cmd)) {

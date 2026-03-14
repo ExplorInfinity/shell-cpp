@@ -90,26 +90,25 @@ namespace RawInput {
     inline void watchInput() {
         int currIndex = static_cast<int>(history.size());
         history.resize(history.size() + 1);
-        std::string *input = &history.back();
+        std::string input;
 
         char ch;
         int tabCount = 0;
         while (read(STDIN_FILENO, &ch, 1) == 1) {
             switch (ch) {
                 case TAB:
-                    handleTab(*input, tabCount);
+                    handleTab(input, tabCount);
                     break;
 
                 case NEWLINE:
-                    if (currIndex != history.size()-1)
-                        history.back() = history[currIndex];
+                    history.back() = input;
                     std::cout << '\n';
                     return;
 
                 case DELETE:
                 case BACKSPACE:
-                    if (!input->empty()) {
-                        input->pop_back();
+                    if (!input.empty()) {
+                        input.pop_back();
                         std::cout << "\b \b";
                         tabCount = 0;
                     }
@@ -131,16 +130,16 @@ namespace RawInput {
                     const int jump = (seq[1] == 'A') ? -1 : 1;
                     if (currIndex + jump >= 0 && currIndex + jump < history.size()) {
                         currIndex += jump;
-                        input = &history[currIndex];
+                        input = history[currIndex];
                         clearTerminalLine();
-                        std::cout << *input;
+                        std::cout << input;
                     }
                     break;
                 }
 
                 default:
                     std::cout << ch;
-                    *input += ch;
+                    input += ch;
                     tabCount = 0;
             }
         }
