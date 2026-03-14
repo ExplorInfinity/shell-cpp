@@ -53,17 +53,23 @@ namespace RawInput {
     inline void handleTab(std::string &input, int &tabCount) {
         if (input.empty()) return;
 
-        const auto &[cmd, args, outfile, append, redirection] = parseString(input);
+        const auto &[cmdPipelines, outfile, append, redirection] = parseString(input);
 
-        if (input.back() != ' ' && args.empty()) {
-            const std::size_t lastInputSize = input.size();
-            if (!cmdCompletion(input, ++tabCount > 1))
+        const auto &args = cmdPipelines.back();
+        if (args.empty()) return;
+
+        auto cmd = args[0];
+
+        if (input.back() != ' ' && args.size() == 1) {
+            const std::size_t lastInputSize = cmd.size();
+            if (!cmdCompletion(cmd, input, ++tabCount > 1))
                 std::cout << '\x07';
             else tabCount = 0;
 
-            std::cout << &input[lastInputSize];
+            input += cmd.substr(lastInputSize);
+            std::cout << cmd.substr(lastInputSize);
         } else {
-            auto file = ((args.empty() || input.back() == ' ') ? "" : args.back());
+            auto file = ((args.size() == 1 || input.back() == ' ') ? "" : args.back());
             const std::size_t lastInputSize = file.size();
             if (!fileCompletion(file, input, ++tabCount > 1))
                 std::cout << '\x07';

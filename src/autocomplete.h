@@ -7,7 +7,9 @@
 #include <string_view>
 #include <unordered_map>
 
+#include "config.h"
 #include "executable.h"
+using namespace Config;
 using namespace Executable;
 
 namespace fs = std::filesystem;
@@ -26,9 +28,6 @@ static bool hasPrefix(const std::string_view s, const std::string_view prefix) {
 }
 
 namespace CommandAutoCompletion {
-
-    inline std::vector<std::string> builtin_cmds = { "exit", "echo", "type", "pwd" };
-
 
     inline void builtinCmdCompletion(std::vector<std::string> &possibilities, const std::string &input) {
         for (const auto &cmd : builtin_cmds) {
@@ -58,7 +57,7 @@ namespace CommandAutoCompletion {
     }
 
 
-    inline bool cmdCompletion(std::string &input, const bool showOptions) {
+    inline bool cmdCompletion(std::string &cmd, std::string &input, const bool showOptions) {
         if (showOptions) {
             if (cache.empty())
                 return false;
@@ -74,15 +73,15 @@ namespace CommandAutoCompletion {
         cache.clear();
         std::vector<std::string> &possibilities = cache;
 
-        builtinCmdCompletion(possibilities, input);
-        executableCompletion(possibilities, input);
+        builtinCmdCompletion(possibilities, cmd);
+        executableCompletion(possibilities, cmd);
 
         if (possibilities.empty())
             return false;
 
         if (possibilities.size() == 1) {
-            input = possibilities[0];
-            input += ' ';
+            cmd = possibilities[0];
+            cmd += ' ';
             return true;
         }
 
@@ -92,8 +91,8 @@ namespace CommandAutoCompletion {
             return a.size() < b.size();
         });
 
-        if (possibilities[0] == input) {
-            input += ' ';
+        if (possibilities[0] == cmd) {
+            cmd += ' ';
             return true;
         }
 
@@ -106,7 +105,7 @@ namespace CommandAutoCompletion {
         if (possibilities.size() > 1)
             return false;
 
-        input = possibilities[0];
+        cmd = possibilities[0];
         return true;
     }
 
@@ -120,6 +119,13 @@ namespace FileAutoCompletion {
         }
 
         return { "", filePath };
+    }
+
+    inline std::string removeSuffix(const std::string &s) {
+        if (s.back() == '/')
+            return s.substr(0, s.size()-1);
+
+        return s.substr(0, s.rfind('.'));
     }
 
     inline bool fileCompletion(std::string &input, const std::string &cmdLine, const bool showOptions) {
@@ -160,9 +166,9 @@ namespace FileAutoCompletion {
             return true;
         }
 
-        const auto maxSize = possibilities.front().size();
+        const auto maxSize = removeSuffix(possibilities.front()).size();
         for (int i = static_cast<int>(possibilities.size()) - 1; i >= 0; --i) {
-            if (possibilities[i].size() > maxSize)
+            if (removeSuffix(possibilities[i]).size() > maxSize)
                 possibilities.pop_back();
         }
 

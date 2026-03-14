@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <ranges>
+#include <algorithm>
 
 static std::vector<std::string> redirectionTokens = { ">", "1>", "2>", ">>", "1>>", "2>>" };
 static std::vector<char> doubleQuotesEscapeChars = { '\"', '\\' };
@@ -10,8 +11,7 @@ namespace Parser {
     enum REDIRECTION { NONE, STDIN, STDERR };
 
     struct Command {
-        std::string cmd;
-        std::vector<std::string> args;
+        std::vector<std::vector<std::string>> cmdPipelines;
         std::string outfile;
         bool append = false;
         REDIRECTION redirection = NONE;
@@ -53,12 +53,16 @@ namespace Parser {
         if (!token.empty())
             tokens.push_back(token);
 
+        // Checking Output Redirection
+
         REDIRECTION redirection = NONE;
         std::string outfile;
 
         bool append = false;
-        const std::string &t = tokens[tokens.size()-2];
-        if ( tokens.size() > 2 && std::ranges::find(redirectionTokens, t) != redirectionTokens.end()) {
+        if (tokens.size() > 2 &&
+            std::ranges::find(redirectionTokens, tokens[tokens.size()-2]) != redirectionTokens.end())
+        {
+            const std::string &t = tokens[tokens.size()-2];
 
             if (t == ">" || t == "1>" || t == ">>" || t == "1>>")
                 redirection = STDIN;
@@ -73,9 +77,22 @@ namespace Parser {
             tokens.pop_back();
         }
 
-        std::string cmd = tokens.front();
-        tokens.erase(tokens.begin());
+        // Creating different Pipelines
+        const auto count = std::ranges::count(tokens, "|");
 
-        return { cmd, tokens, outfile, append, redirection };
+        std::vector<std::vector<std::string>> cmdPipelines(count + 1);
+        int cmdIndex = static_cast<int>(count);
+        for (int i = static_cast<int>(tokens.size())-1; i >= 0; --i) {
+            if (tokens[i] == "|") {
+                for (int j = i + 1; j < tokens.size(); j++)
+                    cmdPipelines[cmdIndex].push_back(std::move(tokens[j]));
+                tokens.resize(i);
+                --cmdIndex;
+            }
+        }
+        for (const auto &token : tokens)
+            cmdPipelines[cmdIndex].push_back(token);
+
+        return { cmdPipelines, outfile, append, redirection };
     }
 }
