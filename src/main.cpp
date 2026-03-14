@@ -24,7 +24,7 @@ using namespace AutoComplete;
 const char* histFile;
 
 static void writeHistoryToFile() {
-    writeHistory(histFile);
+    writeHistory(histFile, true);
 }
 
 int main() {
