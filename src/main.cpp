@@ -1,5 +1,4 @@
 #include <iostream>
-#include <iomanip>
 #include <string>
 #include <vector>
 #include <ranges>
@@ -26,6 +25,9 @@ int main() {
 
     enableRawInput();
     atexit(disableRawInput);
+
+    const char* histFile = std::getenv("HISTFILE");
+    if (histFile) loadHistory(histFile);
 
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
