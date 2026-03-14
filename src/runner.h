@@ -64,7 +64,9 @@ namespace Runner {
         }
 
         else if (cmd == "history") {
-            for (int i = 0; i < history.size(); i++)
+            const int recent = (args.size() > 1 ? history.size() - stoi(args[1]) : 0);
+
+            for (int i = recent; i < history.size(); i++)
                 std::cout << std::setw(5) << i + 1 << "  " << history[i] << std::endl;
         }
 
