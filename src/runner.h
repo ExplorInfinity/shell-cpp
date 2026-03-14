@@ -18,8 +18,11 @@ namespace Runner {
             return false;
 
         if (cmd == "echo") {
-            for (const auto &token : args | std::views::drop(1))
-                std::cout << token << ' ';
+            if (args.size() > 1) {
+                for (int i = 1; i < args.size()-1; i++)
+                    std::cout << args[i] << ' ';
+                std::cout << args.back();
+            }
             std::cout << std::endl;
         }
 
