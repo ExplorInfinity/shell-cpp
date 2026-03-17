@@ -20,11 +20,19 @@ static bool hasPrefix(const std::string_view s, const std::string_view prefix) {
     if (s.size() < prefix.size()) return false;
 
     for (int i = 0; i < prefix.size(); i++) {
-        if (s[i] != prefix[i])
+        if (tolower(s[i]) != tolower(prefix[i]))
             return false;
     }
 
     return true;
+}
+
+static void lcpSort(std::vector<std::string> &possibilities) {
+    std::ranges::sort(possibilities, [](const std::string &a, const std::string &b) {
+        if (a.size() == b.size())
+            return a < b;
+        return a.size() < b.size();
+    });
 }
 
 namespace CommandAutoCompletion {
@@ -71,7 +79,7 @@ namespace CommandAutoCompletion {
         }
 
         cache.clear();
-        std::vector<std::string> &possibilities = cache;
+        auto &possibilities = cache;
 
         builtinCmdCompletion(possibilities, cmd);
         executableCompletion(possibilities, cmd);
@@ -85,24 +93,21 @@ namespace CommandAutoCompletion {
             return true;
         }
 
-        std::ranges::sort(possibilities, [](const std::string &a, const std::string &b) {
-            if (a.size() == b.size())
-                return a < b;
-            return a.size() < b.size();
-        });
+        lcpSort(possibilities);
 
         if (possibilities[0] == cmd) {
             cmd += ' ';
             return true;
         }
 
-        const auto maxSize = possibilities.front().size();
-        for (int i = static_cast<int>(possibilities.size()) - 1; i >= 0; --i) {
-            if (possibilities[i].size() > maxSize)
-                possibilities.pop_back();
+        int size;
+        const auto minSize = possibilities.front().size();
+        for (size = static_cast<int>(possibilities.size()) - 1; size >= 0; --size) {
+            if (possibilities[size].size() > minSize)
+                break;
         }
 
-        if (possibilities.size() > 1)
+        if (size > 0)
             return false;
 
         cmd = possibilities[0];
@@ -140,23 +145,23 @@ namespace FileAutoCompletion {
             std::cout << "\n$ " << cmdLine;
         }
 
-        const fs::path cwd = fs::current_path();
         const auto [subdir, fileName] = parseFilePath(input);
 
+        if (!subdir.empty() && !fs::exists(subdir))
+            return false;
+
+        const fs::path cwd = fs::current_path();
         fs::path path = cwd;
-        path += '/' + subdir;
+        if (!subdir.empty()) path += '/' + subdir;
 
         cache.clear();
         auto &possibilities = cache;
-
 
         for (const fs::directory_entry &entry : fs::directory_iterator(path)) {
             const bool isFile = entry.is_regular_file() && !isExecutable(entry);
             if ((isFile || entry.is_directory()) && hasPrefix(entry.path().filename().c_str(), fileName))
                 possibilities.push_back(subdir + entry.path().filename().c_str() + (isFile ? ' ' : '/'));
         }
-
-        std::ranges::sort(possibilities);
 
         if (possibilities.empty())
             return false;
@@ -166,13 +171,16 @@ namespace FileAutoCompletion {
             return true;
         }
 
-        const auto maxSize = removeSuffix(possibilities.front()).size();
-        for (int i = static_cast<int>(possibilities.size()) - 1; i >= 0; --i) {
-            if (removeSuffix(possibilities[i]).size() > maxSize)
-                possibilities.pop_back();
+        lcpSort(possibilities);
+
+        int size;
+        const auto minSize = removeSuffix(possibilities.front()).size();
+        for (size = static_cast<int>(possibilities.size()) - 1; size >= 0; --size) {
+            if (removeSuffix(possibilities[size]).size() == minSize)
+                break;
         }
 
-        if (possibilities.size() > 1)
+        if (size > 0)
             return false;
 
         possibilities[0].pop_back();
