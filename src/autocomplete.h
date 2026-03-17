@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -14,8 +15,33 @@ using namespace Executable;
 
 namespace fs = std::filesystem;
 
-static std::vector<std::string> cache;
+// Custom Class to handle filepaths
+struct FilePath {
+    std::string filename;
+    std::string extension;
+    bool isDir = true;
 
+    explicit FilePath(std::string filename): filename(std::move(filename)) {}
+    explicit FilePath(std::string filename, std::string extension): FilePath(std::move(filename), std::move(extension), true){}
+    explicit FilePath(std::string filename, std::string extension, const bool isDir): filename(std::move(filename)), extension(std::move(extension)), isDir(isDir) {}
+
+    [[nodiscard]] bool is_directory() const {
+        return isDir;
+    }
+
+    operator std::string() const {
+        return filename + extension;
+    }
+};
+
+inline std::ostream &operator<<(std::ostream &os, const FilePath &filePath) {
+    return os << filePath.filename << filePath.extension;
+}
+
+// Static Global Cache
+static std::vector<FilePath> cache;
+
+// Utility functions
 static bool hasPrefix(const std::string_view s, const std::string_view prefix) {
     if (s.size() < prefix.size()) return false;
 
@@ -27,45 +53,65 @@ static bool hasPrefix(const std::string_view s, const std::string_view prefix) {
     return true;
 }
 
-static void lcpSort(std::vector<std::string> &possibilities) {
-    std::ranges::sort(possibilities, [](const std::string &a, const std::string &b) {
-        if (a.size() == b.size())
-            return a < b;
-        return a.size() < b.size();
+inline std::pair<std::string, std::string> parseFilePath(const std::string &filePath) {
+    for (int i = static_cast<int>(filePath.size()) - 1; i >= 0; --i) {
+        if (filePath[i] == '/')
+            return { filePath.substr(0, i + 1), filePath.substr(i + 1) };
+    }
+
+    return { "", filePath };
+}
+
+// LCP (Longest Common Prefix) Logic
+static std::string getLCP(std::vector<FilePath> &possibilities) {
+    if (possibilities.empty())
+        return "";
+
+    std::ranges::sort(possibilities, [](const FilePath &a, const FilePath &b) {
+        return static_cast<std::string>(a) < static_cast<std::string>(b);
     });
+
+    const auto first = static_cast<std::string>(possibilities.front()),
+                last = static_cast<std::string>(possibilities.back());
+
+    std::size_t i = 0;
+    while ( i < first.size() && i < last.size() &&
+            tolower(first[i]) == tolower(last[i])) ++i;
+
+    return first.substr(0, i);
 }
 
 namespace CommandAutoCompletion {
 
-    inline void builtinCmdCompletion(std::vector<std::string> &possibilities, const std::string &input) {
+    inline void builtinCmdCompletion(std::vector<FilePath> &possibilities, const std::string &input) {
         for (const auto &cmd : builtin_cmds) {
             if (hasPrefix(cmd, input))
-                possibilities.push_back(cmd);
+                possibilities.emplace_back(cmd);
         }
     }
 
-    inline void executableCompletion(std::vector<std::string> &possibilities, const std::string &input) {
+    inline void executableCompletion(std::vector<FilePath> &possibilities, const std::string &input) {
 
         std::string dir;
         std::stringstream ss(pathEnv);
 
         while (std::getline(ss, dir, ':')) {
             std::error_code ec;
-            for (const auto &entry : fs::recursive_directory_iterator(dir, fs::directory_options::skip_permission_denied, ec)) {
+            for (const auto &entry : fs::directory_iterator(dir, fs::directory_options::skip_permission_denied, ec)) {
                 if (!entry.is_regular_file(ec) || ec) continue;
 
                 const std::string filename = entry.path().filename();
                 if (isExecutable(entry) && hasPrefix(filename, input) &&
                     std::ranges::find(builtin_cmds, filename) == builtin_cmds.end())
                 {
-                    possibilities.push_back(entry.path().filename());
+                    possibilities.emplace_back(entry.path().filename());
                 }
             }
         }
     }
 
 
-    inline bool cmdCompletion(std::string &cmd, std::string &input, const bool showOptions) {
+    inline bool cmdCompletion(std::string &cmd, const std::string &cmdLine, const bool showOptions) {
         if (showOptions) {
             if (cache.empty())
                 return false;
@@ -73,7 +119,7 @@ namespace CommandAutoCompletion {
             std::cout << '\n';
             for (const auto &possibility : cache)
                 std::cout << possibility << "  ";
-            std::cout << "\n$ " << input;
+            std::cout << "\n$ " << cmdLine;
 
             return true;
         }
@@ -93,45 +139,17 @@ namespace CommandAutoCompletion {
             return true;
         }
 
-        lcpSort(possibilities);
-
-        if (possibilities[0] == cmd) {
-            cmd += ' ';
-            return true;
-        }
-
-        int size;
-        const auto minSize = possibilities.front().size();
-        for (size = static_cast<int>(possibilities.size()) - 1; size >= 0; --size) {
-            if (possibilities[size].size() > minSize)
-                break;
-        }
-
-        if (size > 0)
+        const auto lcp = getLCP(possibilities);
+        if (lcp.size() == cmd.size())
             return false;
 
-        cmd = possibilities[0];
+        cmd = lcp;
         return true;
     }
 
 }
 
 namespace FileAutoCompletion {
-    inline std::pair<std::string, std::string> parseFilePath(const std::string &filePath) {
-        for (int i = static_cast<int>(filePath.size()) - 1; i >= 0; --i) {
-            if (filePath[i] == '/')
-                return { filePath.substr(0, i + 1), filePath.substr(i + 1) };
-        }
-
-        return { "", filePath };
-    }
-
-    inline std::string removeSuffix(const std::string &s) {
-        if (s.back() == '/')
-            return s.substr(0, s.size()-1);
-
-        return s.substr(0, s.rfind('.'));
-    }
 
     inline bool fileCompletion(std::string &input, const std::string &cmdLine, const bool showOptions) {
         if (showOptions) {
@@ -159,8 +177,11 @@ namespace FileAutoCompletion {
 
         for (const fs::directory_entry &entry : fs::directory_iterator(path)) {
             const bool isFile = entry.is_regular_file() && !isExecutable(entry);
-            if ((isFile || entry.is_directory()) && hasPrefix(entry.path().filename().c_str(), fileName))
-                possibilities.push_back(subdir + entry.path().filename().c_str() + (isFile ? ' ' : '/'));
+            if ((isFile || entry.is_directory()) &&
+                hasPrefix(entry.path().filename().c_str(), fileName))
+            {
+                possibilities.emplace_back(subdir + entry.path().stem().string(), (isFile ? entry.path().extension() : "/"), !isFile);
+            }
         }
 
         if (possibilities.empty())
@@ -168,23 +189,15 @@ namespace FileAutoCompletion {
 
         if (possibilities.size() == 1) {
             input = possibilities[0];
+            if (!possibilities[0].is_directory()) input += ' ';
             return true;
         }
 
-        lcpSort(possibilities);
-
-        int size;
-        const auto minSize = removeSuffix(possibilities.front()).size();
-        for (size = static_cast<int>(possibilities.size()) - 1; size >= 0; --size) {
-            if (removeSuffix(possibilities[size]).size() == minSize)
-                break;
-        }
-
-        if (size > 0)
+        const auto lcp = getLCP(possibilities);
+        if (lcp.size() == input.size())
             return false;
 
-        possibilities[0].pop_back();
-        input = possibilities[0];
+        input = lcp;
         return true;
     }
 }
